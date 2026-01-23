@@ -1,764 +1,446 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Campfire Delta</title>
-    <!-- Tailwind CSS is loaded via CDN, making it a self-contained file -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Load MathJax for LaTeX rendering (essential for math notation) -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dexbot | Gemini AI</title>
+    <!-- Marked.js for markdown support -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- MathJax for math equations -->
     <script>
-        MathJax = {
-            tex: {inlineMath: [['$', '$'], ['\\(', '\\)']]},
-            svg: {fontCache: 'global'}
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true
+            },
+            options: {
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            }
         };
     </script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <style>
-        /* --- Neon Blue Theme Base (Campfire Delta) --- */
         :root {
-            --primary-color: #22D3EE; /* Neon Cyan-400 */
-            --primary-dark: #0891B2; /* Neon Cyan-600 */
-            --secondary-bg: #F0FDFF; /* Light Cyan/Aqua for input/output backgrounds */
-            --text-color: #063740; /* Dark Teal for contrast */
-            --highlight-color: #06B6D4; /* Cyan for highlights */
-            --haze-color: #ECFEFF; /* Very Light Cyan background */
-            --glow-shadow: 0 0 15px rgba(34, 211, 238, 0.7); /* Electric blue glow */
+            --bg-color: #0b0e14;
+            --card-bg: #151921;
+            --text-color: #e2e8f0;
+            --accent-color: #00d2ff;
+            --accent-gradient: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%);
+            --user-msg-bg: #1e293b;
+            --bot-msg-bg: #2d3748;
+            --input-bg: #0f172a;
         }
-        [data-theme="dark"] {
-            --primary-color: #3B82F6; /* Normal Blue-500 */
-            --primary-dark: #2563EB; /* Normal Blue-600 */
-            --secondary-bg: #172554; /* Dark Indigo/Blue for input/output backgrounds */
-            --text-color: #D1E9FF; /* Light blue text */
-            --highlight-color: #60A5FA; /* Lighter Blue for highlights */
-            --haze-color: #0F172A; /* Deep Navy background */
-            --glow-shadow: 0 0 15px rgba(59, 130, 246, 0.5); /* Soft blue glow */
-        }
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--haze-color);
-            color: var(--text-color);
-            line-height: 1.6;
-            min-height: 100vh;
-            transition: background-color 0.3s, color 0.3s;
-        }
-   
-        /* General text color override for better contrast */
+
         * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-color);
             color: var(--text-color);
-            font-weight: 500;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
         }
-        h1, h2, h3, strong {
-            color: var(--highlight-color) !important;
-            font-weight: 700;
+
+        #app-container {
+            width: 100%;
+            max-width: 900px;
+            height: 90vh;
+            background: var(--card-bg);
+            border-radius: 24px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+            margin: 10px;
         }
-        /* Container & Card Styling */
-        .container-card {
-            background-color: #ffffff;
-            box-shadow: var(--glow-shadow);
-            border: 1px solid var(--primary-color);
-            transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s;
-        }
-        [data-theme="dark"] .container-card {
-            background-color: #020617; /* Even darker base */
-            border-color: var(--primary-color);
-        }
-        .container-card:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 10px 15px -3px rgba(34, 211, 238, 0.4), 0 4px 6px -2px rgba(34, 211, 238, 0.2);
-        }
-        [data-theme="dark"] .container-card:hover {
-            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3), 0 4px 6px -2px rgba(59, 130, 246, 0.15);
-        }
-   
-        /* Input Area Styling */
-        .input-area {
-            border: 2px solid var(--primary-color);
-            background-color: var(--secondary-bg);
-            transition: border-color 0.3s, background-color 0.3s;
-        }
-        .input-area:focus-within {
-            border-color: var(--primary-dark);
-        }
-        textarea, input[type="file"] {
-            background-color: transparent !important;
-            color: var(--text-color);
-        }
-   
-        /* Primary Button Styling */
-        .btn-primary {
-            background-color: var(--primary-color);
-            color: #000000 !important; /* Black text for neon contrast */
-            font-weight: 700 !important;
-            transition: background-color 0.3s, transform 0.1s, box-shadow 0.2s;
-            box-shadow: 0 4px 6px -1px rgba(34, 211, 238, 0.4);
-        }
-        .btn-primary:hover {
-            background-color: var(--primary-dark);
-            box-shadow: 0 6px 10px -2px rgba(34, 211, 238, 0.6);
-        }
-        [data-theme="dark"] .btn-primary {
-            color: #ffffff !important;
-            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.4);
-        }
-        [data-theme="dark"] .btn-primary:hover {
-            box-shadow: 0 6px 10px -2px rgba(59, 130, 246, 0.6);
-        }
-        .btn-primary:active {
-            transform: scale(0.98);
-        }
-        .btn-primary:disabled {
-            background-color: #9cdcee;
-            cursor: not-allowed;
-            box-shadow: none;
-        }
-        /* Loader Animation */
-        .loader {
-            border-top-color: #ffffff;
-            border-left-color: #ffffff;
-            -webkit-animation: spin 1s linear infinite;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        /* Message Box */
-        #message-box {
-            position: fixed;
-            top: 1rem;
-            right: 1rem;
-            z-index: 1000;
-        }
-        /* Sidebar and Chat List Styling */
-        .sidebar {
-            background-color: #ffffff;
-            border-right: 2px solid var(--primary-color);
-            box-shadow: 5px 0 10px -5px rgba(34, 211, 238, 0.3);
-            width: 300px;
-            min-height: 100vh;
-            padding: 1.5rem 1rem;
-            position: sticky;
-            top: 0;
-            overflow-y: auto;
-            transition: background-color 0.3s, border-color 0.3s;
-        }
-        [data-theme="dark"] .sidebar {
-            background-color: #0F172A;
-            border-right-color: var(--primary-color);
-            box-shadow: 5px 0 10px -5px rgba(59, 130, 246, 0.2);
-        }
-        .chat-item {
-            cursor: pointer;
-            padding: 0.75rem;
-            margin-bottom: 0.5rem;
-            border-radius: 0.5rem;
-            transition: background-color 0.2s, color 0.2s, border-color 0.2s;
-            border: 1px solid transparent;
+
+        header {
+            padding: 20px 30px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-        }
-        .chat-item:hover:not(.chat-active) {
-            background-color: #d1f7ff; /* Lighter cyan hover */
-            border-color: var(--primary-color);
-        }
-        [data-theme="dark"] .chat-item:hover:not(.chat-active) {
-            background-color: #172554;
-            border-color: var(--primary-color);
-        }
-        .chat-active {
-            background-color: var(--primary-color) !important;
-            border-color: var(--primary-dark) !important;
-            color: #000000 !important;
-        }
-        [data-theme="dark"] .chat-active {
-            color: #ffffff !important;
-        }
-        .chat-active .chat-title, .chat-active .rename-btn, .chat-active .delete-btn, .chat-active .rename-input {
-            color: inherit !important;
-        }
-        .rename-input {
-             border-bottom: 1px solid var(--text-color);
-        }
-        .chat-active .rename-input {
-             border-bottom: 1px solid inherit;
-        }
-        .rename-btn, .delete-btn {
-            opacity: 0.7;
-            transition: opacity 0.2s, background-color 0.2s;
-        }
-        .chat-item:hover .rename-btn, .chat-item:hover .delete-btn {
-            opacity: 1;
-        }
-   
-        /* Image Preview Custom Styles */
-        .image-preview-item {
-            position: relative;
-            background-color: #ffffff;
-            padding: 4px;
-            border: 2px solid var(--primary-color);
-        }
-        [data-theme="dark"] .image-preview-item {
-            background-color: #172554;
-        }
-        .image-remove-btn {
-            position: absolute;
-            top: -10px;
-            right: -10px;
-            width: 24px;
-            height: 24px;
-            background-color: #ef4444; /* Red for removal */
-            color: white !important;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 0.75rem;
-            font-weight: bold;
-            line-height: 1;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(21, 25, 33, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 24px 24px 0 0;
             z-index: 10;
         }
-        .image-remove-btn:hover {
-            background-color: #dc2626;
+
+        .logo-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
-        /* Utility Overrides for text contrast */
-        .text-red-600 { color: #ef4444 !important; }
-        .text-gray-500 { color: #9ca3af !important; }
-        [data-theme="dark"] .text-gray-500 { color: #93c5fd !important; }
-        .text-gray-700 { color: #6b7280 !important; }
-        [data-theme="dark"] .text-gray-700 { color: #bfdbfe !important; }
-        .text-cyan-600 { color: var(--primary-color) !important; }
-        .hover\:text-cyan-800:hover { color: var(--primary-dark) !important; }
-        /* MathJax SVG styling */
-        .MathJax svg {
-            vertical-align: middle;
-        }
-        /* Paste hint styling */
-        .paste-hint {
-            font-size: 0.875rem;
-            color: #9ca3af;
-            margin-top: 0.5rem;
-            font-style: italic;
-        }
-        [data-theme="dark"] .paste-hint {
-            color: #93c5fd;
-        }
-        /* Dark mode toggle */
-        #theme-toggle {
-            position: fixed;
-            bottom: 1.5rem;
-            right: 1.5rem;
-            z-index: 1000;
-            background-color: var(--primary-color);
-            color: var(--text-color); /* Light mode text is dark */
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
+
+        .bot-icon {
+            width: 35px;
+            height: 35px;
+            background: var(--accent-gradient);
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 0 15px rgba(0, 210, 255, 0.4);
+        }
+
+        header h1 {
+            font-size: 1.2rem;
+            letter-spacing: 1px;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .btn-new-chat {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
             cursor: pointer;
-            transition: background-color 0.3s, color 0.3s;
+            font-size: 0.8rem;
+            transition: all 0.2s;
         }
-        #theme-toggle:hover {
-            background-color: var(--primary-dark);
+
+        .btn-new-chat:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--accent-color);
         }
-        [data-theme="dark"] #theme-toggle {
-            color: #ffffff; /* Dark mode text is white */
+
+        #chat-window {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            scroll-behavior: smooth;
+        }
+
+        /* Scrollbar Styling */
+        #chat-window::-webkit-scrollbar { width: 6px; }
+        #chat-window::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+
+        .message-wrapper {
+            display: flex;
+            flex-direction: column;
+            max-width: 85%;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .user-wrapper { align-self: flex-end; }
+        .bot-wrapper { align-self: flex-start; }
+
+        .message {
+            padding: 14px 18px;
+            border-radius: 18px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            word-wrap: break-word;
+        }
+
+        .user-message {
+            background: var(--accent-gradient);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .bot-message {
+            background: var(--bot-msg-bg);
+            color: #cbd5e1;
+            border-bottom-left-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Markdown & Math Styling */
+        .bot-message pre {
+            background: #000;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+        .bot-message code { font-family: 'Courier New', monospace; color: #ff79c6; }
+        .bot-message p { margin-bottom: 8px; }
+        .bot-message p:last-child { margin-bottom: 0; }
+        
+        /* Math Display container */
+        mjx-container[display="true"] {
+            margin: 1em 0 !important;
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+
+        .status-bar {
+            padding: 0 30px 10px;
+            min-height: 20px;
+        }
+
+        .typing-indicator {
+            font-size: 0.8rem;
+            color: var(--accent-color);
+            display: none;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .dot {
+            width: 4px;
+            height: 4px;
+            background: var(--accent-color);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .dot:nth-child(1) { animation-delay: -0.32s; }
+        .dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1.0); }
+        }
+
+        .input-container {
+            padding: 20px 30px 30px;
+            display: flex;
+            gap: 12px;
+            background: var(--card-bg);
+            border-radius: 0 0 24px 24px;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        input {
+            width: 100%;
+            background: var(--input-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 16px 20px;
+            border-radius: 14px;
+            color: white;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        input:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(0, 210, 255, 0.1);
+        }
+
+        .send-btn {
+            background: var(--accent-gradient);
+            border: none;
+            width: 54px;
+            height: 54px;
+            border-radius: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .send-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 210, 255, 0.3);
+        }
+
+        .error-toast {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #ef4444;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            z-index: 100;
+            display: none;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
         }
     </style>
 </head>
-<body class="flex" data-theme="light">
-    <div class="sidebar">
-        <!-- Delta symbol added to the sidebar title -->
-        <h2 class="text-2xl font-bold mb-6 pb-2 border-b border-cyan-200">
-            <span style="color: var(--primary-color); margin-right: 0.5rem;">&#916;</span> Campfire Queries/Chats
-        </h2>
-        <button id="new-chat-btn" class="btn-primary font-semibold py-3 px-4 rounded-xl w-full mb-6 text-lg">
-            <span class="flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-                </svg>
-                Start New Query or chat or whatever
-            </span>
+<body>
+
+<div id="app-container">
+    <header>
+        <div class="logo-group">
+            <div class="bot-icon">D</div>
+            <h1>DEXBOT</h1>
+        </div>
+        <button class="btn-new-chat" onclick="clearChat()">New Chat</button>
+    </header>
+
+    <div id="chat-window" class="tex2jax_process">
+        <div class="message-wrapper bot-wrapper">
+            <div class="message bot-message">
+                Hello! I am **Dexbot**. I can help you with text, code, and even complex math like $\int e^x \, dx = e^x + C$.
+            </div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <div id="typing" class="typing-indicator">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <span>Dexbot is generating...</span>
+        </div>
+    </div>
+
+    <div id="error-msg" class="error-toast"></div>
+
+    <div class="input-container">
+        <div class="input-wrapper">
+            <input type="text" id="user-input" placeholder="Ask me anything..." autocomplete="off">
+        </div>
+        <button class="send-btn" id="send-trigger">
+            <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
         </button>
-        <div id="chat-list">
-            <!-- Chat items will be injected here -->
-        </div>
     </div>
-    <div class="flex-grow p-6 lg:p-10 flex items-start justify-center">
-        <div class="w-full max-w-5xl container-card p-6 md:p-10 rounded-2xl">
-            <div class="text-center mb-8">
-                <!-- Delta symbol added and title updated -->
-                <h1 class="text-4xl font-extrabold tracking-tight">
-                    <span style="color: var(--primary-color);">&#916;</span> CAMPFIRE DELTA (ALPHA TEST)
-                </h1>
-                <p class="mt-2 text-sm text-gray-700 font-normal">
-                    Let me cook fr...🔥🗿 - Made By Vincent
-                </p>
-            </div>
-            <div class="input-area rounded-xl p-4 mb-6 shadow-inner">
-                <textarea id="prompt" rows="5" class="w-full resize-none outline-none placeholder-gray-500 text-lg leading-relaxed font-medium" placeholder="e.g., 'Explain the concept of quantum entanglement and provide a real-world example.' or 'Who created you?'"></textarea>
-                <div class="paste-hint">If you screenshot then paste in the bar it will count as putting a image btw</div>
-           
-                <div id="image-preview-container" class="mb-4 pt-3 border-t border-cyan-300 hidden">
-                    <h3 class="text-base font-semibold mb-2 text-highlight-color">Images you put maxium is 25</h3>
-                    <div id="multi-image-previews" class="flex flex-wrap gap-4 max-h-48 overflow-y-auto p-2 bg-white rounded-lg">
-                        <!-- Image previews are added here -->
-                    </div>
-                </div>
-                <div class="flex items-center justify-between mt-4 flex-wrap gap-4">
-                    <input type="file" id="image-upload" accept="image/*" multiple class="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border file:border-cyan-600 file:text-sm file:font-semibold file:bg-cyan-100 file:text-cyan-600 hover:file:bg-cyan-200 cursor-pointer text-gray-700" />
-                    <button id="solve-button" class="btn-primary font-bold py-3 px-8 rounded-full flex items-center justify-center min-w-[150px] text-lg">
-                        <span id="button-text">MESSAGE DELTA</span>
-                        <div id="loader" class="loader ease-linear rounded-full border-4 border-t-4 border-white h-6 w-6 hidden"></div>
-                    </button>
-                </div>
-            </div>
-            <div id="output-container" class="min-h-[250px] bg-secondary-bg p-6 rounded-xl border border-cyan-400 shadow-md">
-                <h3 class="text-xl font-bold mb-4 pb-2 border-b border-cyan-300">Campfire's Response</h3>
-                <div id="response-content-wrapper">
-                    <div id="response-content" class="whitespace-pre-wrap text-lg font-normal text-gray-700">
-                        Your Solution shall appear here if it does not blame the devs ig
-                    </div>
-                    <div id="citation-content" class="text-sm mt-4 text-gray-500 font-normal"></div>
-                </div>
-                <div id="error-message" class="text-red-600 font-medium mt-4 hidden"></div>
-            </div>
-        </div>
-    </div>
-    <!-- Dark Mode Toggle -->
-    <button id="theme-toggle" title="Toggle Dark Mode">
-        <svg id="sun-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m8.485-9.485l-.707.707M5.222 18.778l-.707.707M21 12h-1M4 12H3m15.364 5.364l-.707-.707M7.757 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
-        </svg>
-        <svg id="moon-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-        </svg>
-    </button>
-    <div id="message-box"></div>
-    <script>
-        const modelName = "gemini-2.5-flash-lite";
+</div>
 
-        // The API key has been updated based on your request.
-        const userApiKey = "AIzaSyCbPIHLeOw14K1FoyeT9E5330fVktByIqM";
+<script>
+    const apiKey = ""; // Runtime provides key
+    const MODEL = "gemini-2.5-flash-preview-09-2025";
+    const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`;
 
-        // --- UI Elements ---
-        const promptInput = document.getElementById('prompt');
-        const imageUpload = document.getElementById('image-upload');
-        const solveButton = document.getElementById('solve-button');
-        const buttonText = document.getElementById('button-text');
-        const loader = document.getElementById('loader');
-        const responseContent = document.getElementById('response-content');
-        const citationContent = document.getElementById('citation-content');
-        const errorMessage = document.getElementById('error-message');
-        const imagePreviewContainer = document.getElementById('image-preview-container');
-        const multiImagePreviews = document.getElementById('multi-image-previews');
-        const messageBox = document.getElementById('message-box');
-        const chatList = document.getElementById('chat-list');
-        const newChatBtn = document.getElementById('new-chat-btn');
-        const inputArea = document.querySelector('.input-area'); // For paste events
-        const themeToggle = document.getElementById('theme-toggle');
-        const sunIcon = document.getElementById('sun-icon');
-        const moonIcon = document.getElementById('moon-icon');
+    const chatWindow = document.getElementById('chat-window');
+    const userInput = document.getElementById('user-input');
+    const sendBtn = document.getElementById('send-trigger');
+    const typingIndicator = document.getElementById('typing');
+    const errorToast = document.getElementById('error-msg');
 
-        // --- Dark Mode Toggle Logic ---
-        function toggleTheme() {
-            const currentTheme = document.body.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            document.body.setAttribute('data-theme', newTheme);
-            localStorage.setItem('campfire-theme', newTheme);
-            sunIcon.classList.toggle('hidden');
-            moonIcon.classList.toggle('hidden');
-            alertUser(`Switched to ${newTheme === 'dark' ? 'dark' : 'light'} mode.`, 'success');
-        }
-        themeToggle.addEventListener('click', toggleTheme);
-        // Load saved theme
-        const savedTheme = localStorage.getItem('campfire-theme') || 'light';
-        document.body.setAttribute('data-theme', savedTheme);
-        if (savedTheme === 'dark') {
-            sunIcon.classList.add('hidden');
-            moonIcon.classList.remove('hidden');
-        }
-        // --- Chat State Management ---
-        let chats = [];
-        let activeChatId = null;
-        /**
-         * Custom alert/message box function.
-         */
-        function alertUser(message, type) {
-            const colorClass = type === 'success' ? 'bg-green-100 border-green-400' : 'bg-yellow-100 border-yellow-400';
-            const icon = type === 'success' ? 'Check' : 'Warning';
+    let history = [];
 
-            const messageEl = document.createElement('div');
-            messageEl.className = `p-4 mb-2 border rounded-xl shadow-lg transition-opacity duration-300 ease-in-out ${colorClass}`;
-
-            const textColor = type === 'success' ? '#10b981' : '#f59e0b';
-            messageEl.innerHTML = `<div class="flex items-center">
-                <span class="mr-3 font-bold" style="color: ${textColor};">${icon}</span>
-                <span style="color: ${textColor};">${message}</span>
-            </div>`;
-
-            messageBox.prepend(messageEl);
-            setTimeout(() => {
-                messageEl.style.opacity = '0';
-                messageEl.addEventListener('transitionend', () => messageEl.remove());
-            }, 5000);
-        }
-        // --- Core Chat Logic ---
-        function createNewChat() {
-            if (activeChatId) {
-                const prevChat = chats.find(c => c.id === activeChatId);
-                if (prevChat) prevChat.prompt = promptInput.value;
-            }
-
-            const newChat = {
-                id: Date.now(),
-                title: `Chat ${chats.length + 1}`,
-                prompt: '',
-                imageFiles: [],
-                responseHtml: 'Your Solution shall appear here if it does not blame the devs ig',
-                citationHtml: '',
-                isRenaming: false
-            };
-            chats.push(newChat);
-            setActiveChat(newChat.id);
-            if (chats.length > 1) alertUser('New Chat session started.', 'success');
-        }
-        window.deleteChat = function(id) {
-            const chatIndex = chats.findIndex(c => c.id === id);
-            if (chatIndex > -1) {
-                const deletedChatTitle = chats[chatIndex].title;
-                chats.splice(chatIndex, 1);
-
-                if (activeChatId === id) {
-                    if (chats.length > 0) setActiveChat(chats[0].id);
-                    else createNewChat();
-                } else renderChatList();
-                alertUser(`Chat "${deletedChatTitle}" deleted.`, 'success');
-            }
-        }
-        function setActiveChat(id) {
-            if (activeChatId) {
-                const currentChat = chats.find(c => c.id === activeChatId);
-                if (currentChat) {
-                    currentChat.prompt = promptInput.value;
-                    currentChat.isRenaming = false;
-                }
-            }
-            activeChatId = id;
-            const chat = chats.find(c => c.id === id);
-            if (chat) {
-                promptInput.value = chat.prompt;
-                responseContent.innerHTML = chat.responseHtml;
-                citationContent.innerHTML = chat.citationHtml;
-                errorMessage.classList.add('hidden');
-                updateImagePreviews(chat.imageFiles);
-                renderChatList();
-                if (window.MathJax && window.MathJax.typesetPromise) {
-                    MathJax.typesetPromise([responseContent]);
-                }
-            }
-        }
-        function renderChatList() {
-            chatList.innerHTML = '';
-            chats.forEach(chat => {
-                const chatEl = document.createElement('div');
-                chatEl.className = `chat-item ${chat.id === activeChatId ? 'chat-active' : ''}`;
-                chatEl.setAttribute('data-chat-id', chat.id);
-                chatEl.onclick = (event) => {
-                    if (chat.isRenaming || event.target.closest('.action-btn')) return;
-                    setActiveChat(chat.id);
-                };
-                let titleContent = chat.isRenaming
-                    ? `<input type="text" id="rename-input-${chat.id}" value="${chat.title}"
-                               class="rename-input flex-grow bg-transparent outline-none text-base"
-                               onkeydown="if(event.key === 'Enter') finishRename(${chat.id})"/>`
-                    : `<span class="chat-title truncate">${chat.title}</span>`;
-                chatEl.innerHTML = `
-                    <div class="flex-grow min-w-0 pr-2">${titleContent}</div>
-                    <div class="flex items-center action-btn">
-                        <button class="rename-btn text-xs ml-2" title="Rename" onclick="event.stopPropagation(); startRename(${chat.id})">
-                            ${chat.renaming ? 'Confirm' : 'Edit'}
-                        </button>
-                        <button class="delete-btn text-xs ml-2" title="Delete" onclick="event.stopPropagation(); deleteChat(${chat.id})">
-                            Trash
-                        </button>
-                    </div>
-                `;
-                chatList.appendChild(chatEl);
-                if (chat.isRenaming) {
-                    const input = document.getElementById(`rename-input-${chat.id}`);
-                    if (input) input.focus();
-                }
-            });
-        }
-        window.startRename = function(id) {
-            const chat = chats.find(c => c.id === id);
-            if (!chat) return;
-            if (chat.isRenaming) finishRename(id);
-            else {
-                chats.forEach(c => c.isRenaming = false);
-                chat.isRenaming = true;
-                renderChatList();
-            }
-        }
-        window.finishRename = function(id) {
-            const chat = chats.find(c => c.id === id);
-            if (!chat) return;
-            const input = document.getElementById(`rename-input-${id}`);
-            if (input) {
-                const newTitle = input.value.trim();
-                if (newTitle && newTitle !== chat.title) {
-                    chat.title = newTitle;
-                    alertUser('Chat renamed successfully.', 'success');
-                }
-            }
-            chat.isRenaming = false;
-            renderChatList();
-        }
-        // --- Image Handling Logic ---
-        const MAX_IMAGES = 25;
-        imageUpload.addEventListener('change', (event) => {
-            const files = Array.from(event.target.files);
-            const activeChat = chats.find(c => c.id === activeChatId);
-            if (!activeChat) {
-                alertUser("Cannot add images: No active chat.", 'warning');
-                return;
-            }
-            if (files.length > 0) {
-                const combinedFiles = [...activeChat.imageFiles, ...files];
-                const finalFiles = combinedFiles.slice(0, MAX_IMAGES);
-                if (combinedFiles.length > MAX_IMAGES) {
-                    alertUser(`Warning: Only the first ${MAX_IMAGES} images are kept.`, 'warning');
-                }
-                activeChat.imageFiles = finalFiles;
-                updateImagePreviews(finalFiles);
-                alertUser(`${finalFiles.length} image(s) attached to the chat.`, 'success');
-            }
-            imageUpload.value = '';
-        });
-        // --- Paste image from clipboard ---
-        inputArea.addEventListener('paste', async (event) => {
-            const activeChat = chats.find(c => c.id === activeChatId);
-            if (!activeChat) {
-                alertUser("Cannot paste image: No active chat.", 'warning');
-                return;
-            }
-            const items = event.clipboardData.items;
-            let pastedImage = null;
-            for (const item of items) {
-                if (item.type.indexOf('image') !== -1) {
-                    pastedImage = item.getAsFile();
-                    break;
-                }
-            }
-            if (!pastedImage) return; // No image in clipboard
-            event.preventDefault(); // Prevent default paste into textarea
-            const combinedFiles = [...activeChat.imageFiles, pastedImage];
-            const finalFiles = combinedFiles.slice(0, MAX_IMAGES);
-            if (combinedFiles.length > MAX_IMAGES) {
-                alertUser(`Warning: Only the first ${MAX_IMAGES} images are kept.`, 'warning');
-            }
-            activeChat.imageFiles = finalFiles;
-            updateImagePreviews(finalFiles);
-            alertUser('Image pasted from clipboard.', 'success');
-        });
-        window.removeImage = function(index) {
-            const activeChat = chats.find(c => c.id === activeChatId);
-            if (activeChat && index >= 0 && index < activeChat.imageFiles.length) {
-                const removedFileName = activeChat.imageFiles[index].name || 'Pasted Image';
-                activeChat.imageFiles.splice(index, 1);
-                updateImagePreviews(activeChat.imageFiles);
-                alertUser(`Image "${removedFileName.substring(0, 20)}..." removed.`, 'success');
-            }
-        }
-        function updateImagePreviews(files) {
-            multiImagePreviews.innerHTML = '';
-            if (files.length === 0) {
-                imagePreviewContainer.classList.add('hidden');
-                return;
-            }
-            imagePreviewContainer.classList.remove('hidden');
-            files.forEach((file, index) => {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const previewEl = document.createElement('div');
-                    previewEl.className = 'image-preview-item rounded-lg shadow-md';
-                    previewEl.innerHTML = `
-                        <img src="${e.target.result}" alt="Preview" class="h-24 w-auto object-contain rounded-md" />
-                        <div class="image-remove-btn" onclick="removeImage(${index})">X</div>
-                    `;
-                    multiImagePreviews.appendChild(previewEl);
-                };
-                reader.readAsDataURL(file);
-            });
-        }
-        function fileToGenerativePart(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    try {
-                        const base64Data = reader.result.split(',')[1];
-                        resolve({
-                            inlineData: {
-                                data: base64Data,
-                                mimeType: file.type || 'image/png',
-                            },
-                        });
-                    } catch (e) {
-                        reject(new Error("Failed to process image file."));
-                    }
-                };
-                reader.onerror = () => reject(new Error("FileReader failed to read image."));
-                reader.readAsDataURL(file);
-            });
-        }
-        async function exponentialBackoffFetch(url, options, maxRetries = 3, delay = 1000) {
-            for (let i = 0; i < maxRetries; i++) {
-                try {
-                    const response = await fetch(url, options);
-                    if (response.ok) return response;
-                    // Explicit 403 (Authentication) Check
-                    if (response.status === 403) {
-                        const errorBody = await response.text();
-                        throw new Error(`Authentication Error (Status 403): The API key is missing or invalid. Please ensure the environment is correctly supplying the necessary credentials. Detail: ${errorBody.substring(0, 100)}...`);
-                    }
-                    if ((response.status === 429 || response.status >= 500) && i < maxRetries - 1) {
-                        await new Promise(resolve => setTimeout(resolve, delay * (2 ** i) + Math.random() * 500));
-                    } else {
-                        let errorBody = await response.text();
-                        try {
-                            const jsonBody = JSON.parse(errorBody);
-                            errorBody = jsonBody.error?.message || errorBody;
-                        } catch (e) {}
-                        throw new Error(`API returned status ${response.status}: ${errorBody}`);
-                    }
-                } catch (error) {
-                    if (i < maxRetries - 1) {
-                        await new Promise(resolve => setTimeout(resolve, delay * (2 ** i) + Math.random() * 500));
-                    } else {
-                        throw new Error(`Request failed after ${maxRetries} attempts. Network Error: ${error.message}`);
-                    }
-                }
-            }
-            throw new Error(`Request failed after ${maxRetries} attempts.`);
-        }
-        window.solveProblem = async function() {
-            const activeChat = chats.find(c => c.id === activeChatId);
-            if (!activeChat) {
-                alertUser("Please start a new chat before solving.", 'warning');
-                return;
-            }
-            const prompt = promptInput.value.trim();
-            const imageFiles = activeChat.imageFiles;
-            if (!prompt && imageFiles.length === 0) {
-                responseContent.textContent = "Please enter a question or upload an image to analyze.";
-                errorMessage.classList.add('hidden');
-                return;
-            }
-            activeChat.prompt = prompt;
-            responseContent.innerHTML = '<em>Processing your request...</em>';
-            citationContent.innerHTML = '';
-            errorMessage.classList.add('hidden');
-            solveButton.disabled = true;
-            buttonText.classList.add('hidden');
-            loader.classList.remove('hidden');
+    async function fetchWithRetry(url, options, retries = 5) {
+        for (let i = 0; i < retries; i++) {
             try {
-                // The API key is appended to the URL
-                const apiUrlWithKey = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${userApiKey}`;
-                const parts = [];
-                if (imageFiles.length > 0) {
-                    const imageParts = await Promise.all(imageFiles.map(fileToGenerativePart));
-                    parts.push(...imageParts);
+                const response = await fetch(url, options);
+                if (response.ok) return await response.json();
+                if (response.status === 429) {
+                    const delay = Math.pow(2, i) * 1000;
+                    await new Promise(res => setTimeout(res, delay));
+                    continue;
                 }
-                parts.push({
-                    text: prompt || (imageFiles.length > 0 ? "Please analyze the uploaded images and describe what is shown." : "")
-                });
-                const payload = {
-                    contents: [{ role: "user", parts: parts }],
-                    tools: [{ googleSearch: {} }],
-                    systemInstruction: {
-                        parts: [{
-                            text: `You are Campfire Delta, a helpful and professional AI assistant.
-                                   Respond in a clear, accurate, and natural tone like a knowledgeable person.
-                                   If asked who created you or similar, respond: "Vincent Ly is my creator and designer."
-                                   Use proper LaTeX for math: inline $...$, display $$...$$.
-                                   Use clean paragraphs. No Markdown formatting.`
-                        }]
-                    },
-                };
-                const response = await exponentialBackoffFetch(apiUrlWithKey, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const result = await response.json();
-                const candidate = result.candidates?.[0];
-                if (candidate && candidate.content?.parts?.[0]?.text) {
-                    const text = candidate.content.parts[0].text;
-                    // Fixed: Removed manual LaTeX post-processing
-                    activeChat.responseHtml = text;
-                    responseContent.innerHTML = text;
-                    if (window.MathJax && window.MathJax.typesetPromise) {
-                        MathJax.typesetPromise([responseContent]);
-                    } else {
-                        console.warn("MathJax is not ready or typesetPromise is unavailable.");
-                    }
-                    // Citations
-                    let sourcesHtml = '';
-                    const groundingMetadata = candidate.groundingMetadata;
-                    if (groundingMetadata && groundingMetadata.groundingAttributions) {
-                        sourcesHtml = '<div class="mt-4 pt-2 border-t border-cyan-200 text-sm"><strong>Sources:</strong>';
-                        const uniqueSources = {};
-                        groundingMetadata.groundingAttributions.forEach((attr, index) => {
-                            const uri = attr.web?.uri;
-                            const title = attr.web?.title || `Source ${index + 1}`;
-                            if (uri && !uniqueSources[uri]) {
-                                uniqueSources[uri] = true;
-                                sourcesHtml += `<div class="truncate"><a href="${uri}" target="_blank" class="text-cyan-600 hover:text-cyan-800">${title}</a></div>`;
-                            }
-                        });
-                        sourcesHtml += '</div>';
-                    }
-                    activeChat.citationHtml = sourcesHtml;
-                    citationContent.innerHTML = sourcesHtml;
-                    if (activeChat.title.startsWith('Chat ')) {
-                        activeChat.title = prompt ? prompt.substring(0, 30) + (prompt.length > 30 ? '...' : '') : 'Image Analysis';
-                        renderChatList();
-                    }
-                } else {
-                    const errorDetail = result.error?.message || 'Could not parse the AI response.';
-                    errorMessage.textContent = `Error: ${errorDetail}`;
-                    errorMessage.classList.remove('hidden');
-                    activeChat.responseHtml = 'An error occurred. Please try again.';
-                    responseContent.innerHTML = activeChat.responseHtml;
-                }
-            } catch (e) {
-                console.error("Solver Error:", e);
-                const displayMessage = `An error occurred: ${e.message}. Please try again.`;
-                errorMessage.textContent = displayMessage;
-                errorMessage.classList.remove('hidden');
-                activeChat.responseHtml = 'The system encountered an error. Please try again.';
-                responseContent.innerHTML = activeChat.responseHtml;
-            } finally {
-                solveButton.disabled = false;
-                buttonText.classList.remove('hidden');
-                loader.classList.add('hidden');
+                throw new Error(`HTTP Error: ${response.status}`);
+            } catch (err) {
+                if (i === retries - 1) throw err;
+                const delay = Math.pow(2, i) * 1000;
+                await new Promise(res => setTimeout(res, delay));
             }
         }
-        // --- Initialization ---
-        newChatBtn.addEventListener('click', createNewChat);
-        solveButton.addEventListener('click', solveProblem);
-        promptInput.addEventListener('input', () => {
-            const activeChat = chats.find(c => c.id === activeChatId);
-            if (activeChat) activeChat.prompt = promptInput.value;
-        });
-        createNewChat();
-    </script>
+    }
+
+    async function handleSend() {
+        const text = userInput.value.trim();
+        if (!text || typingIndicator.style.display === 'flex') return;
+
+        appendMessage(text, 'user');
+        userInput.value = '';
+        
+        typingIndicator.style.display = 'flex';
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+
+        try {
+            const payload = {
+                contents: [
+                    ...history,
+                    { role: "user", parts: [{ text: text }] }
+                ],
+                systemInstruction: {
+                    parts: [{ text: "You are Dexbot, an advanced AI. Use LaTeX for math equations. Always wrap inline math in single $ and block math in double $$. For example: $E=mc^2$." }]
+                }
+            };
+
+            const data = await fetchWithRetry(ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const botText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response received.";
+            
+            history.push({ role: "user", parts: [{ text: text }] });
+            history.push({ role: "model", parts: [{ text: botText }] });
+
+            appendMessage(botText, 'bot');
+        } catch (error) {
+            showError("Request failed. Please try again.");
+            console.error(error);
+        } finally {
+            typingIndicator.style.display = 'none';
+        }
+    }
+
+    function appendMessage(content, role) {
+        const wrapper = document.createElement('div');
+        wrapper.className = `message-wrapper ${role}-wrapper`;
+
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `message ${role}-message`;
+        
+        if (role === 'bot') {
+            msgDiv.innerHTML = marked.parse(content);
+            // Trigger MathJax for this specific element
+            if (window.MathJax) {
+                MathJax.typesetPromise([msgDiv]).catch((err) => console.log('MathJax error:', err));
+            }
+        } else {
+            msgDiv.textContent = content;
+        }
+
+        wrapper.appendChild(msgDiv);
+        chatWindow.appendChild(wrapper);
+        
+        setTimeout(() => {
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }, 50);
+    }
+
+    function showError(msg) {
+        errorToast.textContent = msg;
+        errorToast.style.display = 'block';
+        setTimeout(() => errorToast.style.display = 'none', 4000);
+    }
+
+    function clearChat() {
+        chatWindow.innerHTML = `
+            <div class="message-wrapper bot-wrapper">
+                <div class="message bot-message">Conversation reset. I'm ready for your next question!</div>
+            </div>
+        `;
+        history = [];
+    }
+
+    sendBtn.addEventListener('click', handleSend);
+    userInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleSend();
+    });
+
+    window.onload = () => userInput.focus();
+</script>
+
 </body>
-</html> 
+</html>
